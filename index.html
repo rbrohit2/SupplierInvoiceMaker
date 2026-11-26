@@ -1,0 +1,612 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Airport Assistance - Tax Invoice Generator</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/pdf-lib@1.17.1/dist/pdf-lib.min.js"></script>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap');
+:root{
+  --ink:#12344D;--teal:#0879AD;--teal-deep:#066A95;--teal-soft:#E3F1F8;
+  --paper:#EEF2F5;--card:#FFFFFF;--rule:#D3DDE5;--rule-strong:#B4C2CD;
+  --text:#17212B;--muted:#5B6B79;--ok:#067647;--danger:#B42318;--danger-soft:#FDECEA;
+  --radius:6px;
+  --sans:'IBM Plex Sans',system-ui,-apple-system,'Segoe UI',Arial,sans-serif;
+  --mono:'IBM Plex Mono',ui-monospace,Consolas,monospace;
+}
+*{box-sizing:border-box}
+body{margin:0;font:14px/1.5 var(--sans);color:var(--text);background:var(--paper);padding-bottom:84px;-webkit-font-smoothing:antialiased}
+.head{background:var(--ink);color:#fff;padding:22px 32px 20px;border-bottom:3px solid var(--teal)}
+.head h1{margin:0 0 4px;font-size:21px;font-weight:600;letter-spacing:-.01em}
+.head div{color:#B9CCDA;font-size:13px}
+.wrap{max-width:1500px;margin:20px auto;padding:0 20px}
+.card{background:var(--card);border:1px solid var(--rule);border-radius:var(--radius);margin-bottom:16px}
+.card h2{font-size:14px;font-weight:600;margin:0;padding:14px 18px;border-bottom:1px solid var(--rule);color:var(--ink)}
+.grid{display:grid;grid-template-columns:repeat(4,1fr);gap:14px 16px;padding:18px}
+.grid.compact{gap:10px 12px;padding:14px 16px}
+.field label{display:block;font-size:12px;font-weight:500;margin-bottom:6px;color:var(--muted)}
+.field input,.field textarea,.field select{width:100%;height:38px;padding:0 11px;border:1px solid var(--rule-strong);border-radius:4px;background:#fff;font:inherit;color:var(--text)}
+.field textarea{height:auto;padding:9px 11px;resize:vertical}
+.compact .field input,.compact .field select{height:36px;font-size:13.5px}
+.field input[readonly]{background:#F3F6F8;color:var(--muted);font-family:var(--mono);font-size:13px}
+.field input::placeholder{color:#8593A0}
+.field input:focus,.field select:focus,.field textarea:focus{outline:2px solid var(--teal);outline-offset:1px;border-color:var(--teal)}
+.span2{grid-column:span 2}.span4{grid-column:span 4}
+.req:after{content:' *';color:var(--danger)}
+.tablebox{padding:14px;overflow:auto}
+table{border-collapse:collapse;width:100%;min-width:1500px;font-size:13px}
+th{background:#F5F8FA;color:var(--ink);font-weight:600;font-size:12px;text-align:left;padding:9px 8px;border-bottom:1px solid var(--rule-strong);white-space:nowrap}
+th:nth-child(n+10):nth-child(-n+17){text-align:right}
+td{border:0;border-bottom:1px solid #E4EBF0;padding:5px 6px;vertical-align:middle}
+tbody tr:nth-child(even) td{background:#FAFBFC}
+td input{width:100%;min-width:60px;height:30px;border:0;padding:4px;background:transparent;font:inherit;color:var(--text);border-radius:3px}
+td input:focus{outline:none;background:var(--teal-soft)}
+td input[type=number]{text-align:right;font-family:var(--mono);font-variant-numeric:tabular-nums}
+td input[type=date],td input[type=time]{font-size:12.5px}
+td .desc{min-width:220px}
+td.num{text-align:right;font-family:var(--mono);font-variant-numeric:tabular-nums;white-space:nowrap;padding:6px 8px;min-width:80px;color:var(--ink)}
+td.attach{white-space:nowrap;text-align:center}
+.plus{border:1px solid var(--teal);border-radius:4px;padding:5px 9px;font:500 12px var(--sans);color:var(--teal);background:#fff;cursor:pointer}
+.plus:hover{background:var(--teal-soft)}
+.plus.has{background:var(--ok);border-color:var(--ok);color:#fff}
+.delete{border:0;background:transparent;color:var(--danger);width:28px;height:28px;border-radius:4px;font-size:16px;cursor:pointer}
+.delete:hover{background:var(--danger-soft)}
+.filetip{font-size:11px;color:var(--muted);display:block;margin-top:3px}
+table.nobif .c-bif{display:none}
+table.bif .c-gst{display:none}
+.bar{display:flex;gap:16px;align-items:center;justify-content:space-between;padding:14px 18px;background:var(--ink);color:#D5E3EE;flex-wrap:wrap;border-radius:0 0 var(--radius) var(--radius);font-size:13px}
+.buttons{display:flex;gap:18px;align-items:center;flex-wrap:wrap}
+.buttons label{cursor:pointer;color:#D5E3EE}
+.buttons input[type=checkbox]{accent-color:#7CC8EA;margin-right:6px;width:15px;height:15px;vertical-align:-2px}
+.bar > div:last-child{display:flex;gap:22px;flex-wrap:wrap;align-items:baseline}
+.bar b{font-family:var(--mono);font-variant-numeric:tabular-nums;color:#fff;font-weight:500;margin-left:2px}
+.bar #tTotal{font-size:18px}
+.bar .btn.primary{background:#fff;color:var(--ink)}
+.bar .btn.primary:hover{background:var(--teal-soft)}
+.help{font-size:12px;color:var(--muted);padding:12px 18px 14px;border-top:1px solid var(--rule)}
+.btn{border:1px solid transparent;border-radius:4px;padding:9px 16px;font:600 13px var(--sans);cursor:pointer;transition:background .15s,border-color .15s}
+.btn:focus-visible{outline:2px solid var(--teal);outline-offset:2px}
+.primary{background:var(--teal);color:#fff}.primary:hover{background:var(--teal-deep)}
+.dark{background:var(--ink);color:#fff}.dark:hover{background:#0B2538}
+.light{background:#fff;color:var(--ink);border-color:var(--rule-strong)}.light:hover{background:#F5F8FA}
+.danger{background:transparent;color:var(--danger);border-color:#F0C4BF}.danger:hover{background:var(--danger-soft)}
+.decs{padding:16px 18px;display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
+.decs label{display:flex;gap:10px;align-items:flex-start;border:1px solid var(--rule);border-radius:var(--radius);padding:12px 14px;background:#fff;cursor:pointer;font-size:13px;line-height:1.45}
+.decs label:has(input:checked){border-color:var(--teal);background:var(--teal-soft)}
+.decs input{margin-top:2px;accent-color:var(--teal);width:15px;height:15px;flex:none}
+.sigwrap{display:grid;grid-template-columns:1fr 260px;gap:16px;padding:18px;align-items:start}
+.sigpad{border:1px dashed var(--rule-strong);border-radius:var(--radius);background:#FBFCFD}
+#sigCanvas{display:block;width:100%;height:170px;touch-action:none;cursor:crosshair;border-radius:var(--radius) var(--radius) 0 0}
+.sigbar{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:8px 12px;border-top:1px dashed var(--rule-strong);font-size:12px;color:var(--muted)}
+.sigacts{display:flex;gap:8px}
+.sigup{display:flex;flex-direction:column;gap:8px;align-items:flex-start}
+.sigup label{cursor:pointer}
+.bottom{position:fixed;left:0;right:0;bottom:0;display:flex;gap:10px;align-items:center;padding:12px 20px;background:#fff;border-top:1px solid var(--rule);box-shadow:0 -6px 18px rgba(18,52,77,.07);justify-content:flex-end;z-index:5;flex-wrap:wrap}
+.status{margin-right:auto;color:var(--ok);font-weight:500;font-size:13px}
+@media(max-width:1000px){.sigwrap{grid-template-columns:1fr}.grid{grid-template-columns:1fr 1fr}.span4{grid-column:span 2}.decs{grid-template-columns:1fr 1fr}}
+@media(max-width:640px){.head{padding:18px 20px}.wrap{padding:0 12px}.grid{grid-template-columns:1fr}.span2,.span4{grid-column:span 1}.decs{grid-template-columns:1fr}.bottom{padding:10px 12px}}
+@media(prefers-reduced-motion:reduce){*{transition:none!important}}
+:focus-visible{outline:2px solid var(--teal);outline-offset:2px}
+</style></head><body>
+<header class="head"><h1>Airport Assistance - Tax Invoice Generator</h1>
+<div>Supplier: airport assistance representative &nbsp;|&nbsp; Recipient: Le Passage To India Tours and Travels Private Limited</div></header>
+
+<main class="wrap">
+
+<section class="card"><h2>1. Supplier (airport assistance representative)</h2><div class="grid compact">
+<div class="field span2"><input id="supName" placeholder="Supplier name *"></div>
+<div class="field span2"><input id="supAddr" placeholder="Address *"></div>
+<div class="field"><input id="supGstin" maxlength="15" placeholder="GSTIN (blank if unregistered)" style="text-transform:uppercase"></div>
+<div class="field"><input id="supPan" maxlength="10" placeholder="PAN" style="text-transform:uppercase"></div>
+<div class="field"><select id="supStateSel" onchange="pickState('supStateSel','supState');refresh()"></select></div>
+<div class="field"><input id="supState" maxlength="2" placeholder="State code (auto)" readonly></div>
+<div class="field"><input id="supEmail" type="email" placeholder="Email"></div>
+<div class="field"><input id="supMobile" type="tel" maxlength="15" placeholder="Mobile"></div>
+<div class="field"><input id="supBank" placeholder="Bank account no."></div>
+<div class="field"><input id="supIfsc" maxlength="11" placeholder="IFSC" style="text-transform:uppercase"></div>
+</div></section>
+
+<section class="card"><h2>2. Recipient (Bill to - LPTI)</h2><div class="grid">
+<div class="field span2"><label class="req">Name</label><input id="recName" value="Le Passage To India Tours and Travels Private Limited"></div>
+<div class="field span2"><label class="req">Address</label><input id="recAddr" value="Plot No- B-152, 4th Floor Sector-6, Noida (Delhi - NCR), Uttar Pradesh, India - 201301"></div>
+<div class="field"><label class="req">GSTIN</label><input id="recGstin" maxlength="15" value="09AAACL8370K2Z2"></div>
+<div class="field"><label>PAN</label><input id="recPan" maxlength="10" value="AAACL8370K"></div>
+<div class="field"><label class="req">State code</label><input id="recState" maxlength="2" value="09"></div>
+<div class="field"><label>Email to send invoice to</label><input id="recEmail" type="email"></div>
+</div></section>
+
+<section class="card"><h2>3. Invoice details</h2><div class="grid">
+<div class="field"><label class="req">Invoice no. (auto: Name / FY / Sequence)</label><input id="invNo" maxlength="16" readonly></div>
+<div class="field"><label class="req">Invoice date</label><input id="invDate" type="date"></div>
+<div class="field"><label class="req">Place of supply - state</label><select id="posStateSel" onchange="pickState('posStateSel','posState');refresh()"></select></div>
+<div class="field"><label class="req">Place of supply - state code</label><input id="posState" maxlength="2" readonly></div>
+<div class="field"><label for="rcm">Reverse charge (recipient pays GST)</label><select id="rcm"><option value="no" selected>No</option><option value="yes">Yes</option></select></div>
+</div></section>
+
+<section class="card"><h2>4. Line items (charges claimed)</h2>
+<div class="tablebox"><table id="lineTable" class="nobif"><thead><tr>
+<th>#</th><th>Description</th><th>Service date</th><th>From</th><th>To</th><th>File code</th><th>Flight / Train / Transport</th><th>Time</th><th>SAC</th><th>Qty</th><th>Rate (INR)</th><th>GST %</th><th>Taxable (INR)</th>
+<th class="c-gst">GST (INR)</th><th class="c-bif">CGST (INR)</th><th class="c-bif">SGST (INR)</th><th class="c-bif">IGST (INR)</th>
+<th>Total (INR)</th><th>Supporting</th><th></th>
+</tr></thead><tbody id="rows"></tbody></table></div>
+<div class="bar"><div class="buttons"><button class="btn primary" onclick="addRow()">+ Add line</button>
+<label><input id="bif" type="checkbox" onchange="applyBif();refresh()"> Bifurcate tax into CGST / SGST / IGST columns</label></div>
+<div>Lines: <b id="rowCount">0</b> &nbsp; Taxable: INR <b id="tTaxable">0.00</b> &nbsp; GST: INR <b id="tTax">0.00</b> &nbsp; Total: INR <b id="tTotal">0.00</b></div></div>
+<div class="help">Same state codes for supplier and place of supply give CGST + SGST (half each). Different codes give IGST. Without the bifurcate option, the tax shows as one GST column. Use <b>+ Attach</b> on each line where reimbursement is claimed to attach the bill, receipt or other proof.</div>
+</section>
+
+<section class="card"><h2>5. Signature</h2><div class="sigwrap">
+<div class="sigpad"><canvas id="sigCanvas" width="600" height="170" aria-label="Signature pad"></canvas>
+<div class="sigbar"><span id="sigName">Sign inside the box, or upload an image</span><div class="sigacts"><button class="btn light" type="button" onclick="downloadSig()">Download signature</button><button class="btn light" type="button" onclick="clearSig()">Clear</button></div></div></div>
+<div class="sigup"><label class="btn light" for="sigFile">Upload signature image</label><input id="sigFile" type="file" accept=".png,.jpg,.jpeg" hidden><span class="filetip">PNG or JPG. A transparent PNG looks best on the invoice.</span></div>
+</div></section>
+
+<section class="card"><h2>6. Declaration and remarks</h2>
+<div class="decs">
+<label><input id="dec1" type="checkbox" checked> The particulars given above are true and correct.</label>
+<label><input id="dec2" type="checkbox" checked> Supporting documents are attached against each line where reimbursement is claimed.</label>
+<label><input id="dec3" type="checkbox" checked> The services were provided as per the requirement received for the dates as shown.</label>
+</div>
+<div class="grid" style="padding-top:0"><div class="field span4"><label>Remarks</label><textarea id="remarks" rows="2"></textarea></div></div>
+</section>
+
+</main>
+
+<div class="bottom"><span class="status" id="status"></span>
+<button class="btn light" onclick="saveDraft()">Save draft</button>
+<button class="btn danger" onclick="clearForm()">Clear</button>
+<button class="btn dark" onclick="exportInvoice(false)">Export PDF</button>
+<button class="btn primary" onclick="exportInvoice(true)">Email PDF</button></div>
+
+<script>
+const $=x=>document.getElementById(x);
+const DRAFT_KEY='airportInvoiceDraftV1', INV_KEY='airportInvNext';
+const FIELDS=['supName','supAddr','supGstin','supPan','supState','supEmail','supMobile','supBank','supIfsc','recName','recAddr','recGstin','recPan','recState','recEmail','invNo','invDate','posState','remarks'];
+const STATES=[['01','Jammu and Kashmir'],['02','Himachal Pradesh'],['03','Punjab'],['04','Chandigarh'],['05','Uttarakhand'],['06','Haryana'],['07','Delhi'],['08','Rajasthan'],['09','Uttar Pradesh'],['10','Bihar'],['11','Sikkim'],['12','Arunachal Pradesh'],['13','Nagaland'],['14','Manipur'],['15','Mizoram'],['16','Tripura'],['17','Meghalaya'],['18','Assam'],['19','West Bengal'],['20','Jharkhand'],['21','Odisha'],['22','Chhattisgarh'],['23','Madhya Pradesh'],['24','Gujarat'],['26','Dadra and Nagar Haveli and Daman and Diu'],['27','Maharashtra'],['29','Karnataka'],['30','Goa'],['31','Lakshadweep'],['32','Kerala'],['33','Tamil Nadu'],['34','Puducherry'],['35','Andaman and Nicobar Islands'],['36','Telangana'],['37','Andhra Pradesh'],['38','Ladakh'],['97','Other Territory']];
+const STATE_NAME=Object.fromEntries(STATES);
+const LINE_KEYS=['desc','date','from','to','fileCode','flight','time','sac','qty','rate','gst'];
+const GSTIN_RE=/^\d{2}[A-Z]{5}\d{4}[A-Z][1-9A-Z]Z[0-9A-Z]$/;
+const DECLS=['The particulars given above are true and correct.','Supporting documents are attached against each line where reimbursement is claimed.','The services were provided as per the requirement received for the dates as shown.'];
+const r2=n=>Math.round((+n||0)*100)/100;
+const fmt=n=>(+n||0).toLocaleString('en-IN',{minimumFractionDigits:2,maximumFractionDigits:2});
+const code=x=>String(x||'').trim().padStart(2,'0');
+const setStatus=t=>$('status').textContent=t;
+function fdate(v){const m=String(v||'').match(/^(\d{4})-(\d{2})-(\d{2})$/);return m?`${m[3]}-${m[2]}-${m[1]}`:String(v||'')}
+function header(){const o={};FIELDS.forEach(k=>o[k]=$(k).value.trim());o.supStateName=STATE_NAME[o.supState]||'';o.posStateName=STATE_NAME[o.posState]||'';o.rcm=$('rcm').value==='yes';o.bif=$('bif').checked;o.decl=[$('dec1').checked,$('dec2').checked,$('dec3').checked];return o}
+const isIntra=h=>code(h.supState)===code(h.posState);
+
+function lineCalc(r,intra){
+  const taxable=r2((+r.qty||0)*(+r.rate||0));
+  const tax=r2(taxable*(+r.gst||0)/100);
+  const cgst=intra?r2(tax/2):0;
+  const sgst=intra?r2(tax-cgst):0;
+  const igst=intra?0:tax;
+  return{taxable,tax,cgst,sgst,igst,total:r2(taxable+tax)};
+}
+
+function applyBif(){$('lineTable').className=$('bif').checked?'bif':'nobif'}
+
+function addRow(d={}){
+  const tr=document.createElement('tr');
+  tr._files=[];
+  tr.innerHTML=`<td class="rn"></td>
+  <td><input class="desc" placeholder="e.g. Meet and assist, guest name"></td>
+  <td><input class="date" type="date"></td>
+  <td><input class="from" placeholder="From"></td>
+  <td><input class="to" placeholder="To"></td>
+  <td><input class="fileCode" placeholder="File code"></td>
+  <td><input class="flight" placeholder="e.g. 6E-123 / train / cab no."></td>
+  <td><input class="time" type="time"></td>
+  <td><input class="sac" maxlength="8" placeholder="SAC"></td>
+  <td><input class="qty" type="number" min="0" step="any" value="1"></td>
+  <td><input class="rate" type="number" min="0" step="0.01"></td>
+  <td><input class="gst" type="number" min="0" max="100" step="0.01"></td>
+  <td class="num taxable">0.00</td>
+  <td class="num tax c-gst">0.00</td><td class="num cgst c-bif">0.00</td><td class="num sgst c-bif">0.00</td><td class="num igst c-bif">0.00</td>
+  <td class="num total">0.00</td>
+  <td class="attach"><button class="plus supbtn">+ Attach</button><input class="supfile" type="file" multiple accept=".pdf,.jpg,.jpeg,.png" hidden><span class="filetip suptip"></span></td>
+  <td><button class="delete">×</button></td>`;
+  $('rows').append(tr);
+  LINE_KEYS.forEach(k=>{if(d[k]!=null)tr.querySelector('.'+k).value=d[k]});
+  tr.querySelectorAll('input:not([type=file])').forEach(i=>i.oninput=refresh);
+  tr.querySelector('.delete').onclick=()=>{tr.remove();refresh()};
+  const sb=tr.querySelector('.supbtn'),sf=tr.querySelector('.supfile'),st=tr.querySelector('.suptip');
+  sb.onclick=()=>sf.click();
+  sf.onchange=()=>{
+    tr._files=[...sf.files];const n=tr._files.length;
+    st.textContent=n?`${n} file${n>1?'s':''}`:'';
+    sb.classList.toggle('has',n>0);
+    sb.textContent=n?'✓ Attached':'+ Attach';
+  };
+  refresh();
+}
+
+function getRows(){
+  const intra=isIntra(header());
+  return [...$('rows').children].map(tr=>{
+    const o={files:tr._files||[]};
+    LINE_KEYS.forEach(k=>o[k]=tr.querySelector('.'+k).value);
+    o.desc=o.desc.trim();o.sac=o.sac.trim();o.fileCode=o.fileCode.trim();o.from=o.from.trim();o.to=o.to.trim();o.flight=o.flight.trim();
+    return Object.assign(o,lineCalc(o,intra));
+  });
+}
+
+function refresh(){
+  const rs=getRows();
+  [...$('rows').children].forEach((tr,i)=>{
+    const r=rs[i];
+    tr.querySelector('.rn').textContent=i+1;
+    ['taxable','tax','cgst','sgst','igst','total'].forEach(k=>tr.querySelector('.'+k).textContent=fmt(r[k]));
+  });
+  const sum=k=>r2(rs.reduce((s,r)=>s+(r[k]||0),0));
+  $('rowCount').textContent=rs.length;
+  $('tTaxable').textContent=fmt(sum('taxable'));
+  $('tTax').textContent=fmt(sum('tax'));
+  $('tTotal').textContent=fmt(sum('total'));
+}
+
+function validate(){
+  const h=header(),miss=[];
+  [['supName','Supplier name'],['supAddr','Supplier address'],['supState','Supplier state'],
+   ['recName','Recipient name'],['recAddr','Recipient address'],['recGstin','Recipient GSTIN'],['recState','Recipient state code'],
+   ['invNo','Invoice number'],['invDate','Invoice date'],['posState','Place of supply state code']]
+   .forEach(([id,n])=>{if(!h[id])miss.push(n)});
+  if(h.invNo&&!/^[A-Za-z0-9\/-]{1,16}$/.test(h.invNo))miss.push('Invoice number (up to 16 characters: letters, digits, "-" or "/")');
+  if(h.supGstin&&!GSTIN_RE.test(h.supGstin))miss.push('Supplier GSTIN format (or leave blank if unregistered)');
+  if(h.recGstin&&!GSTIN_RE.test(h.recGstin))miss.push('Recipient GSTIN format');
+  if(h.supEmail&&!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(h.supEmail))miss.push('Supplier email format');
+  const lines=getRows().filter(r=>r.desc||+r.rate>0);
+  if(!lines.length)miss.push('at least one line item');
+  lines.forEach((r,i)=>{
+    const n='Line '+(i+1);
+    if(!r.desc)miss.push(n+': description');
+    if(!r.sac)miss.push(n+': SAC');
+    if(!(+r.rate>0))miss.push(n+': rate');
+    if(r.gst==='')miss.push(n+': GST %');
+  });
+  if(!h.decl.every(Boolean))miss.push('all declarations ticked');
+  if(!getSig())miss.push('signature (draw or upload)');
+  if(miss.length){alert('Please complete: '+miss.join('; '));return null}
+  return{h,lines};
+}
+
+const ones=['','One','Two','Three','Four','Five','Six','Seven','Eight','Nine','Ten','Eleven','Twelve','Thirteen','Fourteen','Fifteen','Sixteen','Seventeen','Eighteen','Nineteen'],
+      tens=['','','Twenty','Thirty','Forty','Fifty','Sixty','Seventy','Eighty','Ninety'];
+function tw(n){return n<20?ones[n]:tens[Math.floor(n/10)]+(n%10?' '+ones[n%10]:'')}
+function inWords(n){
+  n=Math.round(n);if(!n)return'Zero Rupees Only';
+  let a=[];
+  for(const[v,w]of[[1e7,'Crore'],[1e5,'Lakh'],[1e3,'Thousand']])if(n>=v){a.push(tw(Math.floor(n/v))+' '+w);n%=v}
+  if(n>=100){a.push(ones[Math.floor(n/100)]+' Hundred');n%=100}
+  if(n)a.push(tw(n));
+  return a.join(' ')+' Rupees Only';
+}
+
+async function buildBase(h,lines,sig){
+  const{jsPDF}=window.jspdf,doc=new jsPDF({unit:'mm',format:'a4'});
+  const intra=isIntra(h),bif=h.bif;
+  const L=14,R=196,W=R-L,BOTTOM=262;
+  const INK=[18,52,77],ACCENT=[8,121,173],TEXT=[31,41,51],MUTED=[91,107,121],RULE=[213,221,227];
+  const setC=c=>doc.setTextColor(c[0],c[1],c[2]);
+  const hline=(y,c,lw,x1=L,x2=R)=>{doc.setDrawColor(c[0],c[1],c[2]);doc.setLineWidth(lw);doc.line(x1,y,x2,y)};
+  const wrap=(t,w)=>doc.splitTextToSize(String(t||''),w);
+  const totals=lines.reduce((a,r)=>{for(const k of['taxable','tax','cgst','sgst','igst','total'])a[k]=r2(a[k]+r[k]);return a},{taxable:0,tax:0,cgst:0,sgst:0,igst:0,total:0});
+
+  // ---------- Header: supplier (left), title and meta (right) ----------
+  let y=16;
+  setC(INK);doc.setFont('helvetica','bold');doc.setFontSize(13.5);doc.text(h.supName,L,y);
+  let ly=y+5.6;
+  setC(TEXT);doc.setFont('helvetica','normal');doc.setFontSize(8.8);
+  for(const l of wrap(h.supAddr,98)){doc.text(l,L,ly);ly+=4.2}
+  ly+=0.8;
+  const idLines=['GSTIN: '+(h.supGstin||'Unregistered')];
+  if(h.supPan)idLines.push('PAN: '+h.supPan);
+  idLines.push('State: '+h.supStateName+' (Code '+code(h.supState)+')');
+  const contact=[h.supMobile&&'Mobile: '+h.supMobile,h.supEmail&&'Email: '+h.supEmail].filter(Boolean).join('    ');
+  if(contact)idLines.push(contact);
+  for(const l of idLines){doc.text(l,L,ly);ly+=4.2}
+  const leftEnd=ly;
+
+  setC(INK);doc.setFont('helvetica','bold');doc.setFontSize(19);doc.text('Tax Invoice',R,y+2,{align:'right'});
+  let my=y+12;
+  const meta=[['Invoice no.',h.invNo],['Invoice date',fdate(h.invDate)],['Place of supply',(h.posStateName||'')+' ('+code(h.posState)+')'],['Reverse charge',h.rcm?'Yes':'No'],['Supply type',intra?'Intra-state (CGST + SGST)':'Inter-state (IGST)']];
+  doc.setFontSize(8.6);
+  for(const[k,v]of meta){
+    setC(MUTED);doc.setFont('helvetica','normal');doc.text(k,R-62,my);
+    setC(TEXT);doc.setFont('helvetica','bold');doc.text(String(v||'-'),R,my,{align:'right'});
+    my+=4.9;
+  }
+  const headEnd=Math.max(leftEnd,my);
+  hline(headEnd+1.5,INK,0.7);
+  hline(headEnd+2.6,ACCENT,0.25);
+
+  // ---------- Bill to ----------
+  let by=headEnd+9;
+  setC(MUTED);doc.setFont('helvetica','bold');doc.setFontSize(8);doc.text('Bill to',L,by);by+=4.8;
+  setC(INK);doc.setFont('helvetica','bold');doc.setFontSize(10.5);doc.text(h.recName,L,by);by+=4.8;
+  setC(TEXT);doc.setFont('helvetica','normal');doc.setFontSize(8.8);
+  for(const l of wrap(h.recAddr,150)){doc.text(l,L,by);by+=4.2}
+  doc.text('GSTIN: '+h.recGstin+'     PAN: '+(h.recPan||'-')+'     State code: '+code(h.recState),L,by);
+  let y2=by+8;
+
+  // ---------- Line table ----------
+  const heads=bif
+    ?['No','Description','Service date','From','To','File code','Flight / Train / Transport','Time','SAC','Qty','Rate','GST %','Taxable','CGST','SGST','IGST','Total']
+    :['No','Description','Service date','From','To','File code','Flight / Train / Transport','Time','SAC','Qty','Rate','GST %','Taxable','GST','Total'];
+  const weights=bif
+    ?[6,17,15,10,10,13,12,9,11,6,13,11,14,10,10,10,13]
+    :[6,18,16,11,11,15,15,9,12,6,14,11,15,12,14];
+  const cellFont=bif?6.8:7.2;
+  const sumW=weights.reduce((a,b)=>a+b,0);
+  const colW=weights.map(w=>w*W/sumW);
+  const numFrom=9;
+  const xs=[L];colW.forEach((w,i)=>xs[i+1]=xs[i]+w);
+  const cellsFor=(r,i)=>bif
+    ?[i+1,r.desc,fdate(r.date),r.from,r.to,r.fileCode,r.flight,r.time,r.sac,r.qty||'0',fmt(r.rate),(+r.gst||0).toFixed(2)+'%',fmt(r.taxable),fmt(r.cgst),fmt(r.sgst),fmt(r.igst),fmt(r.total)]
+    :[i+1,r.desc,fdate(r.date),r.from,r.to,r.fileCode,r.flight,r.time,r.sac,r.qty||'0',fmt(r.rate),(+r.gst||0).toFixed(2)+'%',fmt(r.taxable),fmt(r.tax),fmt(r.total)];
+
+  const drawHead=()=>{
+    doc.setFillColor(233,239,244);doc.rect(L,y2,W,11,'F');
+    hline(y2+11,INK,0.4);
+    setC(INK);doc.setFont('helvetica','bold');doc.setFontSize(cellFont);
+    heads.forEach((t,i)=>{
+      const hl=doc.splitTextToSize(t,colW[i]-1.6);
+      hl.forEach((ln,k)=>{const yy=y2+3.6+k*2.7;if(i>=numFrom)doc.text(ln,xs[i+1]-0.8,yy,{align:'right'});else doc.text(ln,xs[i]+0.8,yy)});
+    });
+    y2+=11;
+    setC(TEXT);doc.setFont('helvetica','normal');doc.setFontSize(cellFont);
+  };
+  const newPage=()=>{
+    doc.addPage();
+    setC(MUTED);doc.setFont('helvetica','normal');doc.setFontSize(8);
+    doc.text(`Tax invoice ${h.invNo} (continued)`,L,11);
+    y2=16;drawHead();
+  };
+  drawHead();
+  lines.forEach((r,i)=>{
+    const cells=cellsFor(r,i);
+    const cl=cells.map((v,j)=>doc.splitTextToSize(String(v||''),colW[j]-1.6));
+    const rh=Math.max(6.8,Math.max(...cl.map(a=>a.length))*(cellFont*0.42)+2.4);
+    if(y2+rh>BOTTOM-30)newPage();
+    cl.forEach((ls,j)=>{
+      if(j>=numFrom)doc.text(ls,xs[j+1]-0.8,y2+4.1,{align:'right'});
+      else doc.text(ls,xs[j]+0.8,y2+4.1);
+    });
+    y2+=rh;
+    hline(y2,RULE,0.2);
+  });
+
+  // Totals row
+  if(y2+8>BOTTOM-30)newPage();
+  y2+=1;hline(y2,INK,0.4);
+  setC(INK);doc.setFont('helvetica','bold');doc.setFontSize(8);
+  doc.text('Total',xs[1]+0.8,y2+4.8);
+  const blanks=Array(12).fill('');
+  const tot=bif
+    ?[...blanks,fmt(totals.taxable),fmt(totals.cgst),fmt(totals.sgst),fmt(totals.igst),fmt(totals.total)]
+    :[...blanks,fmt(totals.taxable),fmt(totals.tax),fmt(totals.total)];
+  tot.forEach((v,j)=>{if(v)doc.text(v,xs[j+1]-0.8,y2+4.8,{align:'right'})});
+  y2+=7.5;hline(y2,INK,0.4);
+
+  // ---------- Summary: words and bank (left), tax totals (right) ----------
+  let top=y2+8;
+  if(top+70>BOTTOM){newPage();top=y2+8}
+  const sx=122,vx=R;
+  let sy=top;
+  const srow=(k,v)=>{setC(TEXT);doc.setFont('helvetica','normal');doc.setFontSize(8.6);doc.text(k,sx,sy);doc.text(v,vx,sy,{align:'right'});sy+=4.9};
+  srow('Taxable value',fmt(totals.taxable));
+  if(bif){srow('CGST',fmt(totals.cgst));srow('SGST',fmt(totals.sgst));srow('IGST',fmt(totals.igst))}
+  else srow('Total tax',fmt(totals.tax));
+  hline(sy-1.6,INK,0.4,sx,vx);
+  sy+=1.6;
+  setC(INK);doc.setFont('helvetica','bold');doc.setFontSize(10);
+  doc.text('Grand total (INR)',sx,sy+3.6);doc.text(fmt(totals.total),vx,sy+3.6,{align:'right'});
+  const sumEnd=sy+7;
+
+  let lx=L,lyy=top;
+  setC(MUTED);doc.setFont('helvetica','bold');doc.setFontSize(8);doc.text('Amount in words',lx,lyy);lyy+=4.6;
+  setC(INK);doc.setFont('helvetica','bold');doc.setFontSize(9);
+  for(const l of wrap(inWords(totals.total),98)){doc.text(l,lx,lyy);lyy+=4.6}
+  if(h.supBank||h.supIfsc){
+    lyy+=3;setC(MUTED);doc.setFont('helvetica','bold');doc.setFontSize(8);doc.text('Bank details',lx,lyy);lyy+=4.6;
+    setC(TEXT);doc.setFont('helvetica','normal');doc.setFontSize(8.6);
+    if(h.supBank){doc.text('Account no.: '+h.supBank,lx,lyy);lyy+=4.2}
+    if(h.supIfsc){doc.text('IFSC: '+h.supIfsc,lx,lyy);lyy+=4.2}
+  }
+  if(h.remarks){
+    lyy+=3;setC(MUTED);doc.setFont('helvetica','bold');doc.setFontSize(8);doc.text('Remarks',lx,lyy);lyy+=4.6;
+    setC(TEXT);doc.setFont('helvetica','normal');doc.setFontSize(8.6);
+    for(const l of wrap(h.remarks,98)){doc.text(l,lx,lyy);lyy+=4.2}
+  }
+
+  // ---------- Declaration (left) and signature (right) ----------
+  let dy=Math.max(sumEnd,lyy)+10;
+  if(dy+46>BOTTOM){newPage();dy=y2+10}
+  setC(MUTED);doc.setFont('helvetica','bold');doc.setFontSize(8);doc.text('Declaration',L,dy);dy+=4.6;
+  setC(TEXT);doc.setFont('helvetica','normal');doc.setFontSize(8.4);
+  DECLS.forEach((d,i)=>{if(h.decl[i]){for(const l of wrap((i+1)+'. '+d,94)){doc.text(l,L,dy);dy+=4}}});
+  const sigTop=Math.max(dy,top+sumEnd-top)+0;
+  let sgy=Math.max(dy,sumEnd+4);
+  setC(INK);doc.setFont('helvetica','bold');doc.setFontSize(9);doc.text('For '+h.supName,sx,sgy);
+  const boxY=sgy+3,boxW=60,boxH=22;
+  if(sig){
+    const p=doc.getImageProperties(sig),k=Math.min(boxW/p.width,boxH/p.height);
+    doc.addImage(sig,/^data:image\/jpe?g/i.test(sig)?'JPEG':'PNG',sx,boxY,p.width*k,p.height*k);
+  }
+  const lineY=boxY+boxH+2;
+  hline(lineY,TEXT,0.3,sx,vx);
+  setC(TEXT);doc.setFont('helvetica','normal');doc.setFontSize(8.2);doc.text('Authorised signatory',sx,lineY+4.4);
+
+  // ---------- Closing line ----------
+  let ey=Math.max(lineY+12,dy)+10;
+  if(ey>BOTTOM){newPage();ey=y2+12}
+  setC(MUTED);doc.setFont('helvetica','normal');doc.setFontSize(8);
+  doc.text('This is a computer generated invoice. E. & O.E.',105,ey,{align:'center'});
+
+  // ---------- Footer on every page ----------
+  const n=doc.getNumberOfPages();
+  for(let p=1;p<=n;p++){
+    doc.setPage(p);
+    hline(286,RULE,0.2);
+    setC(MUTED);doc.setFont('helvetica','normal');doc.setFontSize(7.4);
+    doc.text(`${h.supName}  |  Invoice ${h.invNo}`,L,290);
+    doc.text(`Page ${p} of ${n}`,R,290,{align:'right'});
+  }
+  return doc.output('arraybuffer');
+}
+
+async function mergeSupports(baseBytes,lines){
+  const{PDFDocument,rgb}=PDFLib,out=await PDFDocument.load(baseBytes);
+  for(const[i,r]of lines.entries())for(const f of r.files){
+    try{
+      const bytes=await f.arrayBuffer();
+      if(f.type==='application/pdf'||f.name.toLowerCase().endsWith('.pdf')){
+        const src=await PDFDocument.load(bytes),pages=await out.copyPages(src,src.getPageIndices());
+        pages.forEach(p=>out.addPage(p));
+      }else{
+        const isPng=/png/i.test(f.type)||/\.png$/i.test(f.name);
+        const img=isPng?await out.embedPng(bytes):await out.embedJpg(bytes);
+        const page=out.addPage([595.28,841.89]);
+        const pw=595.28,m=36,titleY=812,contentTop=770,contentBottom=40;
+        const maxW=pw-2*m,maxH=contentTop-contentBottom;
+        const sc=Math.min(maxW/img.width,maxH/img.height,1);
+        const w=img.width*sc,h=img.height*sc,x=m+(maxW-w)/2,y=contentBottom+(maxH-h)/2;
+        page.drawText(`Line ${i+1} - Supporting document - ${f.name}`,{x:m,y:titleY,size:10,maxWidth:maxW});
+        page.drawRectangle({x:m,y:contentBottom,width:maxW,height:maxH,borderWidth:0.5,borderColor:rgb(0.75,0.75,0.75)});
+        page.drawImage(img,{x,y,width:w,height:h});
+      }
+    }catch(e){throw new Error(`Could not add ${f.name} (line ${i+1}): ${e.message}`)}
+  }
+  return out.save();
+}
+
+// Invoice no. = first 3 letters of supplier name / financial year / sequence (e.g. LEP/2026-27/1)
+const SEQ_PREFIX='airportInvSeq|';
+function fyOf(iso){const m=String(iso).match(/^(\d{4})-(\d{2})/);if(!m)return'';const y=+m[1],mo=+m[2],s=mo>=4?y:y-1;return `${s}-${String(s+1).slice(2)}`}
+function invParts(){return{pfx:$('supName').value.replace(/[^A-Za-z]/g,'').slice(0,3).toUpperCase(),fy:fyOf($('invDate').value)}}
+function nextSeq(pfx,fy){return(+localStorage.getItem(SEQ_PREFIX+pfx+'|'+fy)||0)+1}
+function updateInvNo(){const{pfx,fy}=invParts();$('invNo').value=pfx&&fy?`${pfx}/${fy}/${nextSeq(pfx,fy)}`:''}
+function bumpInvoiceNo(){const{pfx,fy}=invParts();if(pfx&&fy){localStorage.setItem(SEQ_PREFIX+pfx+'|'+fy,String(nextSeq(pfx,fy)));updateInvNo()}}
+function populateStates(){
+  const opts='<option value="">Select state *</option>'+STATES.map(([c,n])=>`<option value="${c}">${n}</option>`).join('');
+  $('supStateSel').innerHTML=opts;$('posStateSel').innerHTML=opts;
+}
+function pickState(selId,codeId){$(codeId).value=$(selId).value}
+function syncStateSelects(){$('supStateSel').value=$('supState').value;$('posStateSel').value=$('posState').value}
+
+async function exportInvoice(email){
+  const v=validate();if(!v)return;
+  if(!window.jspdf||!window.PDFLib){alert('PDF libraries could not load. Please open this page with internet access.');return}
+  setStatus('Creating invoice PDF...');
+  try{
+    const base=await buildBase(v.h,v.lines,getSig());
+    const bytes=await mergeSupports(base,v.lines);
+    const name=`Invoice_${v.h.invNo.replace(/[^A-Za-z0-9]+/g,'_')}_${v.h.supName.replace(/[^A-Za-z0-9]+/g,'_')}.pdf`;
+    const blob=new Blob([bytes],{type:'application/pdf'}),url=URL.createObjectURL(blob);
+    if(!email){
+      const a=document.createElement('a');a.href=url;a.download=name;a.click();
+    }else{
+      const file=new File([blob],name,{type:'application/pdf'});
+      const grand=fmt(r2(v.lines.reduce((s,r)=>s+r.total,0)));
+      const subject=`Tax invoice ${v.h.invNo} | ${v.h.supName} | ${fdate(v.h.invDate)}`;
+      const body=`Dear Accounts,\n\nPlease find attached tax invoice ${v.h.invNo} dated ${fdate(v.h.invDate)} for INR ${grand}.\n\nRegards,\n${v.h.supName}`;
+      if(navigator.canShare&&navigator.canShare({files:[file]})){
+        await navigator.share({files:[file],title:subject,text:body});
+      }else{
+        const a=document.createElement('a');a.href=url;a.download=name;a.click();
+        location.href=`mailto:${encodeURIComponent(v.h.recEmail)}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body+'\n\nPlease attach the downloaded PDF before sending.')}`;
+      }
+    }
+    bumpInvoiceNo();
+    setStatus('Invoice PDF created with line-wise supporting documents.');
+    setTimeout(()=>URL.revokeObjectURL(url),60000);
+  }catch(e){console.error(e);alert(e.message);setStatus('PDF could not be created.')}
+}
+
+function saveDraft(){
+  const d={fields:{},rows:getRows().map(r=>{const o={};LINE_KEYS.forEach(k=>o[k]=r[k]);return o}),
+           checks:[$('rcm').value==='yes',$('dec1').checked,$('dec2').checked,$('dec3').checked,$('bif').checked]};
+  FIELDS.forEach(k=>d.fields[k]=$(k).value);
+  localStorage.setItem(DRAFT_KEY,JSON.stringify(d));
+  setStatus('Draft saved in this browser. Supporting files must be attached again after reopening.');
+}
+function loadDraft(){
+  try{
+    const d=JSON.parse(localStorage.getItem(DRAFT_KEY));if(!d)return;
+    FIELDS.forEach(k=>{if(d.fields[k]!=null)$(k).value=d.fields[k]});
+    $('rows').innerHTML='';
+    d.rows.forEach(r=>addRow(r));
+    $('rcm').value=d.checks?.[0]?'yes':'no';
+    ['dec1','dec2','dec3','bif'].forEach((k,i)=>$(k).checked=d.checks?.[i+1]!==false);
+    if(!d.checks?.[4])$('bif').checked=false;
+  }catch(e){}
+}
+function clearForm(){
+  if(confirm('Clear the form and saved draft?')){localStorage.removeItem(DRAFT_KEY);location.reload()}
+}
+
+// Signature pad: drawn ink or an uploaded image
+const sigCanvas=$('sigCanvas'),sctx=sigCanvas.getContext('2d');
+sctx.lineWidth=2.2;sctx.lineCap='round';sctx.lineJoin='round';sctx.strokeStyle='#1E40AF';
+let sigInk=false,sigUpload=null,drawing=false;
+// Recolour any uploaded signature to blue ink; darkness becomes opacity so white paper disappears
+function toBlueInk(img){
+  const c=document.createElement('canvas');c.width=img.width;c.height=img.height;
+  const x=c.getContext('2d');x.drawImage(img,0,0);
+  const d=x.getImageData(0,0,c.width,c.height),px=d.data;
+  for(let i=0;i<px.length;i+=4){
+    const lum=0.299*px[i]+0.587*px[i+1]+0.114*px[i+2];
+    px[i]=30;px[i+1]=64;px[i+2]=175;
+    px[i+3]=Math.round(px[i+3]*(1-lum/255));
+  }
+  x.putImageData(d,0,0);return c;
+}
+function downloadSig(){
+  const s=getSig();
+  if(!s){alert('Draw or upload a signature first.');return}
+  const a=document.createElement('a');
+  a.href=s;a.download='Signature_'+($('supName').value.trim()||'Supplier').replace(/[^A-Za-z0-9]+/g,'_')+'.png';a.click();
+}
+function sigPos(e){const r=sigCanvas.getBoundingClientRect();return{x:(e.clientX-r.left)*sigCanvas.width/r.width,y:(e.clientY-r.top)*sigCanvas.height/r.height}}
+function clearSig(){sctx.clearRect(0,0,sigCanvas.width,sigCanvas.height);sigInk=false;sigUpload=null;$('sigFile').value='';$('sigName').textContent='Sign inside the box, or upload an image'}
+function getSig(){return sigUpload||(sigInk?sigCanvas.toDataURL('image/png'):null)}
+sigCanvas.addEventListener('pointerdown',e=>{
+  if(sigUpload)clearSig();
+  drawing=true;sigCanvas.setPointerCapture(e.pointerId);
+  const p=sigPos(e);sctx.beginPath();sctx.moveTo(p.x,p.y);sigInk=true;e.preventDefault();
+});
+sigCanvas.addEventListener('pointermove',e=>{if(!drawing)return;const p=sigPos(e);sctx.lineTo(p.x,p.y);sctx.stroke();e.preventDefault()});
+const endSig=()=>{drawing=false};
+sigCanvas.addEventListener('pointerup',endSig);
+sigCanvas.addEventListener('pointercancel',endSig);
+$('sigFile').addEventListener('change',e=>{
+  const f=e.target.files[0];if(!f)return;
+  const reader=new FileReader();
+  reader.onload=()=>{
+    const img=new Image();
+    img.onload=()=>{
+      sctx.clearRect(0,0,sigCanvas.width,sigCanvas.height);
+      const k=Math.min(sigCanvas.width/img.width,sigCanvas.height/img.height,1);
+      const w=img.width*k,h=img.height*k;
+      const blue=toBlueInk(img);sctx.drawImage(blue,(sigCanvas.width-w)/2,(sigCanvas.height-h)/2,w,h);
+      sigUpload=blue.toDataURL('image/png');sigInk=true;$('sigName').textContent='Uploaded: '+f.name;
+    };
+    img.src=reader.result;
+  };
+  reader.readAsDataURL(f);
+});
+
+// Initial values
+populateStates();
+const d0=new Date();
+$('invDate').value=new Date(d0.getTime()-d0.getTimezoneOffset()*60000).toISOString().slice(0,10);
+$('posStateSel').value='09';pickState('posStateSel','posState');
+loadDraft();
+syncStateSelects();
+$('supName').addEventListener('input',updateInvNo);
+$('invDate').addEventListener('change',updateInvNo);
+applyBif();
+updateInvNo();
+if(!$('rows').children.length)addRow();
+refresh();
+</script>
+</body></html>
